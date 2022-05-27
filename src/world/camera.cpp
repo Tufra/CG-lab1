@@ -60,6 +60,7 @@ void cg::world::camera::set_z_far(float in_z_far)
 const float4x4 cg::world::camera::get_view_matrix() const
 {
 	// TODO: Lab 1.04. Implement `cg::world::camera` class
+	return float4x4{};
 }
 
 #ifdef DX12
@@ -82,32 +83,39 @@ const DirectX::XMMATRIX camera::get_dxm_mvp_matrix() const
 const float4x4 cg::world::camera::get_projection_matrix() const
 {
 	// TODO: Lab 1.04. Implement `cg::world::camera` class
+	return float4x4{};
 }
 
 const float3 cg::world::camera::get_position() const
 {
+	return float3{};
 	// TODO: Lab 1.04. Implement `cg::world::camera` class
 }
 
 const float3 cg::world::camera::get_direction() const
 {
 	// TODO: Lab 1.04. Implement `cg::world::camera` class
+	return float3{};
 }
 
 const float3 cg::world::camera::get_right() const
 {
 	// TODO: Lab 1.04. Implement `cg::world::camera` class
+	return float3{};
 }
 
 const float3 cg::world::camera::get_up() const
 {
+	return float3{};
 	// TODO: Lab 1.04. Implement `cg::world::camera` class
 }
 const float camera::get_theta() const
 {
+	return 0.0;
 	// TODO: Lab 1.04. Implement `cg::world::camera` class
 }
 const float camera::get_phi() const
 {
+	return 0.0;
 	// TODO: Lab 1.04. Implement `cg::world::camera` class
 }

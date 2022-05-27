@@ -6,6 +6,7 @@
 #include <iostream>
 #include <linalg.h>
 #include <memory>
+#include <cfloat>
 
 
 using namespace linalg::aliases;
@@ -106,13 +107,14 @@ namespace cg::renderer
 	rasterizer<VB, RT>::edge_function(float2 a, float2 b, float2 c)
 	{
 		// TODO: Lab 1.05. Implement `cg::renderer::rasterizer::edge_function` method
-
+		return 1.0;
 	}
 
 	template<typename VB, typename RT>
 	inline bool rasterizer<VB, RT>::depth_test(float z, size_t x, size_t y)
 	{
 		// TODO: Lab 1.06. Implement depth_test function of cg::renderer::rasterizer class
+		return true;
 	}
 
 }// namespace cg::renderer
