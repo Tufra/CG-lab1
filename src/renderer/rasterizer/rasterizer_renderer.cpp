@@ -29,7 +29,7 @@ void cg::renderer::rasterization_renderer::init()
 	camera->set_z_far(settings->camera_z_far);
 
 	depth_buffer = std::make_shared<cg::resource<float>>(settings->width, settings->height);
-	rasterizer->set_render_target(render_target, depth_buffer)
+	rasterizer->set_render_target(render_target, depth_buffer);
 	
 }
 void cg::renderer::rasterization_renderer::render()
