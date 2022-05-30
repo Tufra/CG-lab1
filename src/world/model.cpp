@@ -25,7 +25,7 @@ void cg::world::model::load_obj(const std::filesystem::path& model_path)
 	tinyobj::ObjReader reader;
 	if (!reader.ParseFromFile(model_path.string(), readerConfig)) {
 		if (!reader.Error().empty()) {
-			THROW_ERROR(reader.Error());
+			THROW_ERROR(reader.Error() + "<--->" + model_path.string());
 		}
 	}
 
