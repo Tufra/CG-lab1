@@ -18,6 +18,7 @@ set(SOURCE
         src/renderer/renderer.cpp
         src/world/camera.cpp
         src/world/model.cpp
+        src/world/light.cpp
         src/utils/resource_utils.cpp)
 
 if(MSVC)
@@ -36,7 +37,7 @@ target_include_directories(Raytracing PRIVATE ${INCLUDE})
 target_link_libraries(Raytracing PRIVATE OpenMP::OpenMP_CXX)
 set_property(TARGET Raytracing PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
-add_executable(DirectX12 WIN32 src/win_main.cpp src/renderer/dx12/dx12_renderer.cpp src/utils/window.cpp ${SOURCE})
+add_executable(DirectX12 WIN32 src/win_main.cpp src/renderer/dx12/dx12_renderer.cpp src/utils/window.cpp ${SOURCE} src/world/light.cpp src/world/light.h)
 target_compile_definitions(DirectX12 PUBLIC DX12 WIN32_LEAN_AND_MEAN NOMINMAX _CRT_SECURE_NO_WARNINGS _UNICODE UNICODE)
 target_include_directories(DirectX12 PRIVATE ${INCLUDE})
 target_link_libraries(DirectX12 d3d12.lib dxgi.lib d3dcompiler.lib dxguid.lib)

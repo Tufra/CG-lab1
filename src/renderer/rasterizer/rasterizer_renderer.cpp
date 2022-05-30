@@ -32,6 +32,8 @@ void cg::renderer::rasterization_renderer::init()
 	camera->set_z_near(settings->camera_z_near);
 	camera->set_z_far(settings->camera_z_far);
 
+    light = std::make_shared<cg::world::light>();
+
 	depth_buffer = std::make_shared<cg::resource<float>>(settings->width, settings->height);
 	rasterizer->set_render_target(render_target, depth_buffer);
 	
@@ -53,16 +55,21 @@ void cg::renderer::rasterization_renderer::render()
 	};
 
 	rasterizer->pixel_shader = [&](cg::vertex vertex_data, float z) {
+
+        float3 point_dir = float3 {
+            -light->get_position().x,
+            -light->get_position().y,
+            -light->get_position().z
+        };
         float3 vertex_normal = float3 {vertex_data.nx, vertex_data.ny, vertex_data.nz};
         float normal_len = linalg::length(vertex_normal);
-        float dir_len = linalg::length(camera->get_direction());
-        float angle_diff = linalg::dot(-camera->get_direction(), vertex_normal) / (normal_len * dir_len);
-
+        float dir_len = linalg::length(point_dir);
+        float angle_diff = linalg::dot(-point_dir, vertex_normal) / (normal_len * dir_len);
 
 		return cg::color {
-			vertex_data.ambient_r * (angle_diff),
-			vertex_data.ambient_g * (angle_diff),
-			vertex_data.ambient_b * (angle_diff)
+			vertex_data.ambient_r * angle_diff,
+			vertex_data.ambient_g * angle_diff,
+			vertex_data.ambient_b * angle_diff
 		};
 	};
 
@@ -76,12 +83,21 @@ void cg::renderer::rasterization_renderer::render()
 
 }
 
-void cg::renderer::rasterization_renderer::set_model_scale(float x_scale, float y_scale, float z_scale) {
-    model->set_scale(x_scale, y_scale, z_scale);
+void cg::renderer::rasterization_renderer::set_model_scale(float3 scale) {
+    model->set_scale(scale);
 }
 
-void cg::renderer::rasterization_renderer::set_model_rotation(float x_angle, float y_scale, float z_scale) {
-    model->set_rotation(x_angle, y_scale, z_scale);
+void cg::renderer::rasterization_renderer::set_model_rotation(float3 angle) {
+    model->set_rotation(angle);
+}
+
+void cg::renderer::rasterization_renderer::set_light_position(float3 in_position) {
+    light->set_position(in_position);
+}
+
+void cg::renderer::rasterization_renderer::set_light_direction(float theta, float phi) {
+    light->set_theta(theta);
+    light->set_phi(phi);
 }
 
 void cg::renderer::rasterization_renderer::destroy() {}

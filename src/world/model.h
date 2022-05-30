@@ -29,9 +29,9 @@ namespace cg::world
 
         const float4x4 get_transform_matrix() const;
 
-        const void set_rotation(float x_angle = 0.f, float y_angle = 0.f, float z_angle = 0.f);
+        const void set_rotation(float3 angle = float3 {0.f, 0.f, 0.f});
 
-        const void set_scale(float x_scale = 1.f, float y_scale = 1.f, float z_scale = 1.f);
+        const void set_scale(float3 scale = float3 {1.f, 1.f, 1.f});
 
 	protected:
 		tinyobj::attrib_t attrib;

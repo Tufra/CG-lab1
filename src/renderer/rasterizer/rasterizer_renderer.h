@@ -14,8 +14,11 @@ namespace cg::renderer
 		virtual void update();
 		virtual void render();
 
-        virtual void set_model_scale(float x_scale = 1.f, float y_scale = 1.f, float z_scale = 1.f);
-        virtual void set_model_rotation(float x_angle = 0.f, float y_scale = 1.f, float z_scale = 1.f);
+        virtual void set_model_scale(float3 scale);
+        virtual void set_model_rotation(float3 angle);
+
+        virtual void set_light_position(float3 in_position);
+        virtual void set_light_direction(float theta, float phi);
 
 	protected:
 		std::shared_ptr<cg::resource<cg::unsigned_color>> render_target;

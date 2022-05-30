@@ -163,11 +163,11 @@ void cg::world::model::load_obj(const std::filesystem::path& model_path)
 	}
 }
 
-const void cg::world::model::set_rotation(float _x_angle, float _y_angle, float _z_angle) {
+const void cg::world::model::set_rotation(float3 angle) {
 
-    float x_angle = (_x_angle * M_PI) / 180.f;
-    float y_angle = (_y_angle * M_PI) / 180.f;
-    float z_angle = (_z_angle * M_PI) / 180.f;
+    float x_angle = (angle.x * M_PI) / 180.f;
+    float y_angle = (angle.y * M_PI) / 180.f;
+    float z_angle = (angle.z * M_PI) / 180.f;
 
     float4x4 x_rotation {
         {1, 0, 0, 0},
@@ -195,12 +195,12 @@ const void cg::world::model::set_rotation(float _x_angle, float _y_angle, float 
     z_rotation_matrix = z_rotation;
 }
 
-const void cg::world::model::set_scale(float x_scale, float y_scale, float z_scale) {
+const void cg::world::model::set_scale(float3 scale) {
 
     scale_matrix = float4x4 {
-        {x_scale, 0, 0, 0},
-        {0, y_scale, 0, 0},
-        {0, 0, z_scale, 0},
+        {scale.x, 0, 0, 0},
+        {0, scale.y, 0, 0},
+        {0, 0, scale.z, 0},
         {0, 0, 0, 1}
     };
 }

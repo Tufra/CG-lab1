@@ -121,7 +121,6 @@ const float3 cg::world::camera::get_position() const
 
 const float3 cg::world::camera::get_direction() const
 {
-	// TODO: Lab 1.04. Implement `cg::world::camera` class
 	return float3 {
 			sin(theta) * cos(phi),
 			sin(phi),
