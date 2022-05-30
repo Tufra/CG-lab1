@@ -1,10 +1,12 @@
 #define TINYOBJLOADER_IMPLEMENTATION
+#define _USE_MATH_DEFINES
 
 #include "model.h"
 
 #include "utils/error_handler.h"
 
 #include <linalg.h>
+#include <cmath>
 
 
 using namespace linalg::aliases;
@@ -26,6 +28,7 @@ void cg::world::model::load_obj(const std::filesystem::path& model_path)
 			THROW_ERROR(reader.Error());
 		}
 	}
+
 
 	auto& attrib = reader.GetAttrib();
 	auto& shapes = reader.GetShapes();
@@ -160,6 +163,47 @@ void cg::world::model::load_obj(const std::filesystem::path& model_path)
 	}
 }
 
+const void cg::world::model::set_rotation(float _x_angle, float _y_angle, float _z_angle) {
+
+    float x_angle = (_x_angle * M_PI) / 180.f;
+    float y_angle = (_y_angle * M_PI) / 180.f;
+    float z_angle = (_z_angle * M_PI) / 180.f;
+
+    float4x4 x_rotation {
+        {1, 0, 0, 0},
+        {0, cos(x_angle), sin(-x_angle), 0},
+        {0, sin(x_angle), cos(x_angle), 0},
+        {0, 0, 0, 1}
+    };
+
+    float4x4 y_rotation {
+        {cos(y_angle), 0, sin(y_angle), 0},
+        {0, 1, 0, 0},
+        {-sin(y_angle), 0, cos(y_angle), 0},
+        {0, 0, 0, 1}
+    };
+
+    float4x4 z_rotation {
+        {cos(z_angle), -sin(z_angle), 0, 0},
+        {sin(z_angle), cos(z_angle), 0, 0},
+        {0, 0, 1, 0},
+        {0, 0, 0, 1}
+    };
+
+    x_rotation_matrix = x_rotation;
+    y_rotation_matrix = y_rotation;
+    z_rotation_matrix = z_rotation;
+}
+
+const void cg::world::model::set_scale(float x_scale, float y_scale, float z_scale) {
+
+    scale_matrix = float4x4 {
+        {x_scale, 0, 0, 0},
+        {0, y_scale, 0, 0},
+        {0, 0, z_scale, 0},
+        {0, 0, 0, 1}
+    };
+}
 
 const std::vector<std::shared_ptr<cg::resource<cg::vertex>>>&
 cg::world::model::get_vertex_buffers() const
@@ -188,4 +232,9 @@ const float4x4 cg::world::model::get_world_matrix() const
 			{0, 1, 0, 0},
 			{0, 0, 1, 0},
 			{0, 0, 0, 1}};
+}
+
+const float4x4 cg::world::model::get_transform_matrix() const {
+
+    return linalg::mul(scale_matrix, x_rotation_matrix, y_rotation_matrix, z_rotation_matrix);
 }

@@ -13,6 +13,8 @@ void cg::renderer::rasterization_renderer::init()
 
 	model = std::make_shared<cg::world::model>();
 	model->load_obj(settings->model_path);
+    model->set_scale();
+    model->set_rotation();
 
 	camera = std::make_shared<cg::world::camera>();
 	camera->set_height(static_cast<float>(settings->height));
@@ -39,6 +41,7 @@ void cg::renderer::rasterization_renderer::render()
 	float4x4 matrix = linalg::mul(
 			camera->get_projection_matrix(),
 			camera->get_view_matrix(),
+            model->get_transform_matrix(),
 			model->get_world_matrix()
 	);
 
@@ -63,6 +66,14 @@ void cg::renderer::rasterization_renderer::render()
 
 	cg::utils::save_resource(*render_target, settings->result_path);
 
+}
+
+void cg::renderer::rasterization_renderer::set_model_scale(float x_scale, float y_scale, float z_scale) {
+    model->set_scale(x_scale, y_scale, z_scale);
+}
+
+void cg::renderer::rasterization_renderer::set_model_rotation(float x_angle, float y_scale, float z_scale) {
+    model->set_rotation(x_angle, y_scale, z_scale);
 }
 
 void cg::renderer::rasterization_renderer::destroy() {}

@@ -28,6 +28,9 @@ namespace cg::renderer
 		void move_yaw(float delta = 0.f);
 		void move_pitch(float delta = 0.f);
 
+        virtual void set_model_scale(float x_scale, float y_scale, float z_scale) = 0;
+        virtual void set_model_rotation(float x_angle, float y_scale, float z_scale) = 0;
+
 	protected:
 		std::shared_ptr<cg::settings> settings;
 
@@ -36,7 +39,7 @@ namespace cg::renderer
 
 		std::chrono::time_point<std::chrono::high_resolution_clock> current_time =
 				std::chrono::high_resolution_clock::now();
-		float frame_duration = 0.f;
+		float frame_duration = 1.f;
 	};
 
 

@@ -28,6 +28,7 @@ namespace cg::world
 
 		const float4x4 get_view_matrix() const;
 		const float4x4 get_projection_matrix() const;
+		const float4x4 get_scale_matrix(float3 scale) const;
 
 #ifdef DX12
 		const DirectX::XMMATRIX get_dxm_view_matrix() const;

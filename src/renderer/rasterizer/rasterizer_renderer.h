@@ -14,6 +14,9 @@ namespace cg::renderer
 		virtual void update();
 		virtual void render();
 
+        virtual void set_model_scale(float x_scale = 1.f, float y_scale = 1.f, float z_scale = 1.f);
+        virtual void set_model_rotation(float x_angle = 0.f, float y_scale = 1.f, float z_scale = 1.f);
+
 	protected:
 		std::shared_ptr<cg::resource<cg::unsigned_color>> render_target;
 		std::shared_ptr<cg::resource<float>> depth_buffer;

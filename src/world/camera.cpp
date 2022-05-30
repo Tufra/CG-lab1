@@ -4,7 +4,7 @@
 
 #include "utils/error_handler.h"
 
-#include <math.h>
+#include <cmath>
 
 
 using namespace cg::world;
@@ -103,6 +103,15 @@ const float4x4 cg::world::camera::get_projection_matrix() const
 			{0, 0, z_far / (z_near - z_far), -1},
 			{0 , 0, (z_far * z_near) / (z_near - z_far), 0}
 	};
+}
+
+const float4x4 cg::world::camera::get_scale_matrix(float3 scale) const {
+	return float4x4 {
+		{scale.x, 0, 0, 0},
+		{0, scale.y, 0, 0},
+        {0, 0, scale.z, 0},
+        {0, 0, 0, 1}
+    };
 }
 
 const float3 cg::world::camera::get_position() const
