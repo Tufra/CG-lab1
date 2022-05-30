@@ -1,3 +1,5 @@
+#define _USE_MATH_DEFINES
+
 #include "rasterizer_renderer.h"
 
 #include "utils/resource_utils.h"
@@ -50,11 +52,17 @@ void cg::renderer::rasterization_renderer::render()
 		return std::make_pair(processed, vertex_data);
 	};
 
-	rasterizer->pixel_shader = [](cg::vertex vertex_data, float z) {
+	rasterizer->pixel_shader = [&](cg::vertex vertex_data, float z) {
+        float3 vertex_normal = float3 {vertex_data.nx, vertex_data.ny, vertex_data.nz};
+        float normal_len = linalg::length(vertex_normal);
+        float dir_len = linalg::length(camera->get_direction());
+        float angle_diff = linalg::dot(-camera->get_direction(), vertex_normal) / (normal_len * dir_len);
+
+
 		return cg::color {
-			vertex_data.ambient_r,
-			vertex_data.ambient_g,
-			vertex_data.ambient_b
+			vertex_data.ambient_r * (angle_diff),
+			vertex_data.ambient_g * (angle_diff),
+			vertex_data.ambient_b * (angle_diff)
 		};
 	};
 
