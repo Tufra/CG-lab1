@@ -56,15 +56,17 @@ void cg::renderer::rasterization_renderer::render()
 
 	rasterizer->pixel_shader = [&](cg::vertex vertex_data, float z) {
 
+        float3 light_dir = linalg::normalize(light->get_direction());
+
         float3 point_dir = float3 {
-            -light->get_position().x,
-            -light->get_position().y,
-            -light->get_position().z
+            -light_dir.x,
+            -light_dir.y,
+            -light_dir.z
         };
         float3 vertex_normal = float3 {vertex_data.nx, vertex_data.ny, vertex_data.nz};
         float normal_len = linalg::length(vertex_normal);
         float dir_len = linalg::length(point_dir);
-        float angle_diff = linalg::dot(-point_dir, vertex_normal) / (normal_len * dir_len);
+        float angle_diff = linalg::dot(-point_dir, linalg::normalize(vertex_normal)) / (normal_len * dir_len);
 
 		return cg::color {
 			vertex_data.ambient_r * angle_diff,
