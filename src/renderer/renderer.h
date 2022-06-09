@@ -29,11 +29,11 @@ namespace cg::renderer
 		void move_yaw(float delta = 0.f);
 		void move_pitch(float delta = 0.f);
 
-        virtual void set_model_scale(float3 scale) = 0;
-        virtual void set_model_rotation(float3 angle) = 0;
-
-        virtual void set_light_position(float3 in_position) = 0;
-        virtual void set_light_direction(float theta, float phi) = 0;
+//        virtual void set_model_scale(float3 scale) = 0;
+//        virtual void set_model_rotation(float3 angle) = 0;
+//
+//        virtual void set_light_position(float3 in_position) = 0;
+//        virtual void set_light_direction(float theta, float phi) = 0;
 
 	protected:
 		std::shared_ptr<cg::settings> settings;
