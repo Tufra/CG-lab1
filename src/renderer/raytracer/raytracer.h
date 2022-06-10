@@ -229,7 +229,6 @@ namespace cg::renderer
 				};
 
 				payload payload = trace_ray(ray, depth);
-
 				render_target->item(x, y) = RT::from_color(payload.color);
 			}
 		}
@@ -318,19 +317,36 @@ namespace cg::renderer
 	template<typename VB>
 	inline void aabb<VB>::add_triangle(const triangle<VB> triangle)
 	{
-		// TODO: Lab 2.05. Implement aabb class
+		if (triangles.empty()) {
+			aabb_max = aabb_min = triangle.a;
+		}
+
+		triangles.push_back(triangle);
+		aabb_max = std::max(aabb_max, triangle.a);
+		aabb_max = std::max(aabb_max, triangle.b);
+		aabb_max = std::max(aabb_max, triangle.c);
+
+		aabb_min = std::min(aabb_min, triangle.a);
+		aabb_min = std::min(aabb_min, triangle.b);
+		aabb_min = std::min(aabb_min, triangle.c);
 	}
 
 	template<typename VB>
 	inline const std::vector<triangle<VB>>& aabb<VB>::get_triangles() const
 	{
-		// TODO: Lab 2.05. Implement aabb class
+		return triangles;
 	}
 
 	template<typename VB>
 	inline bool aabb<VB>::aabb_test(const ray& ray) const
 	{
-		// TODO: Lab 2.05. Implement aabb class
+		float3 inv_ray_direction = float3(1.f) / ray.direction;
+		float3 t0 = (aabb_max - ray.position) * inv_ray_direction;
+		float3 t1 = (aabb_min - ray.position) * inv_ray_direction;
+		float3 tmax = std::max(t0, t1);
+		float3 tmin = std::min(t0, t1);
+
+		return linalg::maxelem(tmin) <= linalg::maxelem(tmax);
 	}
 
 }// namespace cg::renderer
