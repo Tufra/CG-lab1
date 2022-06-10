@@ -159,9 +159,9 @@ namespace cg::renderer
 	{
 		for (size_t i = 0; i < render_target->get_number_of_elements(); ++i) {
 			render_target->item(i) = in_clear_value;
+			history->item(i) = float3 {0.f, 0.f, 0.f};
 		}
 
-		// TODO: Lab 2.06. Add `history` resource in `raytracer` class
 	}
 
 	template<typename VB, typename RT>
@@ -201,7 +201,6 @@ namespace cg::renderer
 
 			acceleration_structures.push_back(aabb);
 		}
-		// TODO: Lab 2.05. Implement build_acceleration_structure method of raytracer class
 	}
 
 	template<typename VB, typename RT>
@@ -210,7 +209,7 @@ namespace cg::renderer
 	{
 		height = in_height;
 		width = in_width;
-		// TODO: Lab 2.06. Add `history` resource in `raytracer` class
+		history = std::make_shared<cg::resource<float3>>(width, height);
 	}
 
 	template<typename VB, typename RT>
@@ -218,28 +217,39 @@ namespace cg::renderer
 			float3 position, float3 direction,
 			float3 right, float3 up, size_t depth, size_t accumulation_num)
 	{
-		for (int x = 0; x < width; ++x) {
+		float frame_wight = 1.f / static_cast<float>(accumulation_num);
 
+		for (int frame_id = 0; frame_id < accumulation_num; ++frame_id) {
+			std::cout << "Tracing frame #" << frame_id + 1 << std::endl;
+			float2 jitter = get_jitter(frame_id);
+			for (int x = 0; x < width; ++x) {
 #pragma omp parallel for
-			for (int y = 0; y < height; ++y) {
+				for (int y = 0; y < height; ++y) {
 
-				float u = (2.f * x) / static_cast<float>(width - 1) - 1.f;
-				float v = (2.f * y) / static_cast<float>(height - 1) - 1.f;
+					float u = (2.f * x + jitter.x) / static_cast<float>(width - 1) - 1.f;
+					float v = (2.f * y + jitter.y) / static_cast<float>(height - 1) - 1.f;
 
-				u *= static_cast<float>(width) / static_cast<float>(height);
+					u *= static_cast<float>(width) / static_cast<float>(height);
 
-				float3 ray_direction = direction + u * right - v * up;
-				ray ray(
-						position,
-						ray_direction
-				);
+					float3 ray_direction = direction + u * right - v * up;
+					ray ray(
+							position,
+							ray_direction
+					);
 
-				payload payload = trace_ray(ray, depth);
-				render_target->item(x, y) = RT::from_color(payload.color);
+					payload payload = trace_ray(ray, depth);
+
+					auto& history_pixel = history->item(x, y);
+					history_pixel += sqrt(float3 {
+							payload.color.r,
+							payload.color.g,
+							payload.color.b
+					} * frame_wight);
+
+					render_target->item(x, y) = RT::from_color3(history_pixel);
+				}
 			}
 		}
-		// TODO: Lab 2.06. Add `history` resource in `raytracer` class
-		// TODO: Lab 2.06. Implement TAA in `ray_generation` method of `raytracer` class
 	}
 
 	template<typename VB, typename RT>
