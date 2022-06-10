@@ -219,6 +219,8 @@ namespace cg::renderer
 			float3 right, float3 up, size_t depth, size_t accumulation_num)
 	{
 		for (int x = 0; x < width; ++x) {
+
+#pragma omp parallel for
 			for (int y = 0; y < height; ++y) {
 
 				float u = (2.f * x) / static_cast<float>(width - 1) - 1.f;
@@ -227,10 +229,10 @@ namespace cg::renderer
 				u *= static_cast<float>(width) / static_cast<float>(height);
 
 				float3 ray_direction = direction + u * right - v * up;
-				ray ray {
+				ray ray(
 						position,
 						ray_direction
-				};
+				);
 
 				payload payload = trace_ray(ray, depth);
 				render_target->item(x, y) = RT::from_color(payload.color);
@@ -254,14 +256,20 @@ namespace cg::renderer
 		closest_hit_payload.t = max_t;
 		const triangle<VB>* closest_triangle = nullptr;
 
-		for (auto& triangle: triangles) {
-			payload payload = intersection_shader(triangle, ray);
-			if (payload.t > min_t && payload.t < closest_hit_payload.t) {
-				closest_hit_payload = payload;
-				closest_triangle = &triangle;
+		for (auto& aabb: acceleration_structures) {
+			if (!aabb.aabb_test(ray)) {
+				continue;
+			}
 
-				if (any_hit_shader) {
-					return any_hit_shader(ray, payload, triangle);
+			for (auto& triangle: aabb.get_triangles()) {
+				payload payload = intersection_shader(triangle, ray);
+				if (payload.t > min_t && payload.t < closest_hit_payload.t) {
+					closest_hit_payload = payload;
+					closest_triangle = &triangle;
+
+					if (any_hit_shader) {
+						return any_hit_shader(ray, payload, triangle);
+					}
 				}
 			}
 		}
@@ -273,7 +281,6 @@ namespace cg::renderer
 		}
 
 		return miss_shader(ray);
-		// TODO: Lab 2.05. Adjust trace_ray method of raytracer class to traverse the acceleration structure
 	}
 
 	template<typename VB, typename RT>
@@ -314,7 +321,29 @@ namespace cg::renderer
 	template<typename VB, typename RT>
 	float2 raytracer<VB, RT>::get_jitter(int frame_id)
 	{
-		// TODO: Lab 2.06. Implement `get_jitter` method of `raytracer` class
+		float2 result {0.f, 0.f};
+		constexpr int base_x = 2;
+		int index = frame_id + 1;
+		float inv_base = 1.f / base_x;
+		float fraction = inv_base;
+
+		while (index > 0) {
+			result.x += (index % base_x) * fraction;
+			index /= base_x;
+			fraction *= inv_base;
+		}
+
+		constexpr int base_y = 3;
+		index = frame_id + 1;
+		inv_base = 1.f / base_y;
+		fraction = inv_base;
+
+		while (index > 0) {
+			result.y += (index % base_y) * fraction;
+			index /= base_y;
+			fraction += inv_base;
+		}
+		return result - 0.5f;
 	}
 
 
@@ -344,11 +373,11 @@ namespace cg::renderer
 	template<typename VB>
 	inline bool aabb<VB>::aabb_test(const ray& ray) const
 	{
-		float3 inv_ray_direction = float3(1.f) / ray.direction;
+		float3 inv_ray_direction = float3 (1.f) / ray.direction;
 		float3 t0 = (aabb_max - ray.position) * inv_ray_direction;
 		float3 t1 = (aabb_min - ray.position) * inv_ray_direction;
-		float3 tmax = std::max(t0, t1);
-		float3 tmin = std::min(t0, t1);
+		float3 tmax = linalg::max(t0, t1);
+		float3 tmin = linalg::min(t0, t1);
 
 		return linalg::maxelem(tmin) <= linalg::maxelem(tmax);
 	}
