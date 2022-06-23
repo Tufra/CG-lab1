@@ -63,18 +63,49 @@ ComPtr<IDXGIFactory4> cg::renderer::dx12_renderer::get_dxgi_factory()
 
 void cg::renderer::dx12_renderer::initialize_device(ComPtr<IDXGIFactory4>& dxgi_factory)
 {
-	// TODO Lab 3.02. Enumerate hardware adapters
-	// TODO Lab 3.02. Create a device object
+	ComPtr<IDXGIAdapter1> hardware_adapter;
+	dxgi_factory->EnumAdapters1(0, &hardware_adapter);
+#ifdef _DEBUG
+	DXGI_ADAPTER_DESC adapter_desc = {};
+	hardware_adapter->GetDesc(&adapter_desc);
+	OutputDebugString(adapter_desc.Description);
+	OutputDebugString(L"\n");
+#endif
+	THROW_IF_FAILED(D3D12CreateDevice(hardware_adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device)));
 }
 
 void cg::renderer::dx12_renderer::create_direct_command_queue()
 {
-	// TODO Lab 3.02. Create a command queue
+	D3D12_COMMAND_QUEUE_DESC queue_desc = {};
+	queue_desc.Type	= D3D12_COMMAND_LIST_TYPE_DIRECT;
+	queue_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+	device->CreateCommandQueue(&queue_desc, IID_PPV_ARGS(&command_queue));
 }
 
 void cg::renderer::dx12_renderer::create_swap_chain(ComPtr<IDXGIFactory4>& dxgi_factory)
 {
-	// TODO Lab 3.02. Create a swap chain and bind it to window
+	DXGI_SWAP_CHAIN_DESC1 swap_chain_desc = {};
+	swap_chain_desc.BufferCount = frame_number;
+	swap_chain_desc.Height = settings->height;
+	swap_chain_desc.Width = settings->width;
+	swap_chain_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+	swap_chain_desc.SampleDesc.Count = 1;
+
+	ComPtr<IDXGISwapChain1> temp_swap_chain;
+	THROW_IF_FAILED(dxgi_factory->CreateSwapChainForHwnd(
+			command_queue.Get(),
+			cg::utils::window::get_hwnd(),
+			&swap_chain_desc,
+			nullptr,
+			nullptr,
+			&temp_swap_chain));
+
+	dxgi_factory->MakeWindowAssociation(cg::utils::window::get_hwnd(), DXGI_MWA_NO_ALT_ENTER);
+
+	temp_swap_chain.As(&swap_chain);
+	frame_index = swap_chain->GetCurrentBackBufferIndex();
 }
 
 void cg::renderer::dx12_renderer::create_render_target_views()
@@ -100,7 +131,11 @@ void cg::renderer::dx12_renderer::create_command_list()
 
 void cg::renderer::dx12_renderer::load_pipeline()
 {
-	// TODO Lab 3.02. Bring everything together in `load_pipeline` method
+	ComPtr<IDXGIFactory4> dxgi_factory = get_dxgi_factory();
+	initialize_device(dxgi_factory);
+	create_direct_command_queue();
+	create_swap_chain(dxgi_factory);
+	create_render_target_views();
 }
 
 D3D12_STATIC_SAMPLER_DESC cg::renderer::dx12_renderer::get_sampler_descriptor()
@@ -132,6 +167,17 @@ void cg::renderer::dx12_renderer::create_pso(const std::string& shader_name)
 void cg::renderer::dx12_renderer::create_resource_on_upload_heap(ComPtr<ID3D12Resource>& resource, UINT size, const std::wstring& name)
 {
 	// TODO Lab 3.03. Implement resource creation on upload heap
+	THROW_IF_FAILED(device->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+			D3D12_HEAP_FLAG_NONE,
+			&CD3DX12_RESOURCE_DESC::Buffer(size),
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&resource)
+			));
+	if (!name.empty()) {
+		resource->SetName(name.c_str());
+	}
 }
 
 void cg::renderer::dx12_renderer::create_resource_on_default_heap(ComPtr<ID3D12Resource>& resource, UINT size, const std::wstring& name, D3D12_RESOURCE_DESC* resource_descriptor)
@@ -140,7 +186,12 @@ void cg::renderer::dx12_renderer::create_resource_on_default_heap(ComPtr<ID3D12R
 
 void cg::renderer::dx12_renderer::copy_data(const void* buffer_data, UINT buffer_size, ComPtr<ID3D12Resource>& destination_resource)
 {
-	// TODO Lab 3.03. Map resources and copy suitable data to the resources
+	UINT8* buffer_data_begin;
+	CD3DX12_RANGE read_range(0, 0);
+	THROW_IF_FAILED(destination_resource->Map(0, &read_range, reinterpret_cast<void**>(&buffer_data_begin)));
+
+	memcpy(buffer_data_begin, buffer_data, buffer_size);
+	destination_resource->Unmap(0, 0);
 }
 
 void cg::renderer::dx12_renderer::copy_data(const void* buffer_data, const UINT buffer_size, ComPtr<ID3D12Resource>& destination_resource, ComPtr<ID3D12Resource>& intermediate_resource, D3D12_RESOURCE_STATES state_after, int row_pitch, int slice_pitch)
@@ -172,11 +223,45 @@ void cg::renderer::dx12_renderer::create_constant_buffer_view(const ComPtr<ID3D1
 
 void cg::renderer::dx12_renderer::load_assets()
 {
-	// TODO Lab 3.03. Allocate memory for vertex and index buffers
-	// TODO Lab 3.03. Create committed resources for vertex, index and constant buffers on upload heap
-	// TODO Lab 3.03. Copy resource data to suitable resources
 	// TODO Lab 3.04. Create a descriptor heap for a constant buffer
 	// TODO Lab 3.04. Create a constant buffer view
+
+	vertex_buffers.resize(model->get_vertex_buffers().size());
+	vertex_buffer_views.resize(model->get_vertex_buffers().size());
+
+	index_buffers.resize(model->get_index_buffers().size());
+	index_buffer_views.resize(model->get_index_buffers().size());
+
+	for (size_t i = 0; i < model->get_index_buffers().size(); ++i) {
+		// Vertex buffer
+		auto vertex_buffer_data = model->get_vertex_buffers()[i];
+		const UINT vertex_buffer_size = static_cast<UINT>(vertex_buffer_data->get_size_in_bytes());
+
+		std::wstring vertex_buffer_name(L"Vertex buffer ");
+		vertex_buffer_name += std::to_wstring(i);
+		create_resource_on_upload_heap(vertex_buffers[i], vertex_buffer_size, vertex_buffer_name);
+
+		copy_data(vertex_buffer_data->get_data(), vertex_buffer_size, vertex_buffers[i]);
+
+		// Index buffer
+		auto index_buffer_data = model->get_index_buffers()[i];
+		const UINT index_buffer_size = static_cast<UINT>(index_buffer_data->get_size_in_bytes());
+
+		std::wstring index_buffer_name(L"Index buffer ");
+		index_buffer_name += std::to_wstring(i);
+		create_resource_on_upload_heap(index_buffers[i], index_buffer_size, index_buffer_name);
+
+		copy_data(index_buffer_data->get_data(), index_buffer_size, index_buffers[i]);
+	}
+
+	// Constant buffer
+	std::wstring const_buffer_name(L"Constant buffer");
+	create_resource_on_upload_heap(constant_buffer, 64 * 1024, const_buffer_name);
+
+	copy_data(&cb, sizeof(cb), constant_buffer);
+
+	CD3DX12_RANGE read_range(0, 0);
+	THROW_IF_FAILED(constant_buffer->Map(0, &read_range, reinterpret_cast<void**>(&constant_buffer_data_begin)));
 }
 
 

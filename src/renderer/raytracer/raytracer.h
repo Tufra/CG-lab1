@@ -21,6 +21,8 @@ namespace cg::renderer
 
 		float3 position;
 		float3 direction;
+
+		size_t number_of_hits = 0;
 	};
 
 	struct payload
@@ -119,7 +121,7 @@ namespace cg::renderer
 		void ray_generation(float3 position, float3 direction, float3 right, float3 up, size_t depth,
 							size_t accumulation_num);
 
-		payload trace_ray(const ray& ray, size_t depth, float max_t = 1000.f, float min_t = 0.001f) const;
+		payload trace_ray(ray& ray, size_t depth, float max_t = 1000.f, float min_t = 0.001f) const;
 
 		payload intersection_shader(const triangle<VB>& triangle, const ray& ray) const;
 
@@ -134,6 +136,7 @@ namespace cg::renderer
 						nullptr;
 
 		float2 get_jitter(int frame_id);
+		void smooth();
 
 	protected:
 		std::shared_ptr<cg::resource<RT>> render_target;
@@ -223,7 +226,7 @@ namespace cg::renderer
 			std::cout << "Tracing frame #" << frame_id + 1 << std::endl;
 			float2 jitter = get_jitter(frame_id);
 			for (int x = 0; x < width; ++x) {
-#pragma omp parallel for
+//#pragma omp parallel for
 				for (int y = 0; y < height; ++y) {
 
 					float u = (2.f * x + jitter.x) / static_cast<float>(width - 1) - 1.f;
@@ -247,14 +250,48 @@ namespace cg::renderer
 					} * frame_weight);
 
 					render_target->item(x, y) = RT::from_float3(history_pixel);
+
 				}
 			}
 		}
 	}
 
 	template<typename VB, typename RT>
+	void raytracer<VB, RT>::smooth() {
+		size_t stride = render_target->get_stride();
+		size_t n = render_target->get_number_of_elements();
+		cg::resource<RT> render_target_copy(stride, n / stride);
+		for (int i = 3; i < stride - 3; ++i) {
+			for (int j = 3; j < n / stride - 3; ++j) {
+				RT item = render_target->item(i, j);
+				if (item.r < 10.f && item.g < 10.f && item.b < 10.f) {
+					float accum_r, accum_g, accum_b;
+					float accum_counter = 0;
+					for (int k = i - 2; k < i + 2; ++k) {
+						for (int l = j - 2; l < j + 2; ++l) {
+							accum_r += render_target->item(k, l).r;
+							accum_g += render_target->item(k, l).g;
+							accum_b += render_target->item(k, l).b;
+							accum_counter++;
+						}
+					}
+					float3 average = {
+							accum_r / accum_counter,
+							accum_g / accum_counter,
+							accum_b / accum_counter
+					};
+					render_target_copy.item(i, j) = RT::from_float3(average);
+				} else {
+					render_target_copy.item(i, j) = render_target->item(i, j);
+				}
+			}
+		}
+		set_render_target(std::make_shared<cg::resource<RT>>(render_target_copy));
+	}
+
+	template<typename VB, typename RT>
 	inline payload raytracer<VB, RT>::trace_ray(
-			const ray& ray, size_t depth, float max_t, float min_t) const
+			ray& ray, size_t depth, float max_t, float min_t) const
 	{
 		if (depth == 0) {
 			return miss_shader(ray);
@@ -274,6 +311,7 @@ namespace cg::renderer
 			for (auto& triangle: aabb.get_triangles()) {
 				payload payload = intersection_shader(triangle, ray);
 				if (payload.t > min_t && payload.t < closest_hit_payload.t) {
+
 					closest_hit_payload = payload;
 					closest_triangle = &triangle;
 

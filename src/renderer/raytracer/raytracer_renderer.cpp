@@ -63,13 +63,13 @@ void cg::renderer::ray_tracing_renderer::render()
 	std::uniform_real_distribution<float> uniform_distribution(-1.f, 1.f);
 
 	raytracer->closest_hit_shader = [&](const ray& ray, payload& payload, const triangle<cg::vertex>& triangle, size_t depth) {
-		float3 result_color = triangle.diffuse;
+//		float3 result_color = triangle.diffuse;
 
 		float3 position = ray.position + ray.direction * payload.t;
 		float3 normal = normalize(
 				payload.bary.x * triangle.na + payload.bary.y * triangle.nb + payload.bary.z * triangle.nc);
 
-		result_color = triangle.emissive;
+		float3 result_color = triangle.emissive;
 
 		float3 random_direction {
 				uniform_distribution(random_generator),
@@ -123,9 +123,20 @@ void cg::renderer::ray_tracing_renderer::render()
 
 	auto stop = std::chrono::high_resolution_clock::now();
 
+	auto start_smoothing = std::chrono::high_resolution_clock::now();
+	std::cout << "smoothing" << std::endl;
+
+	for (int i = 0; i < 10; ++i) {
+		raytracer->smooth();
+	}
+
+	auto stop_smoothing = std::chrono::high_resolution_clock::now();
+
 	std::chrono::duration<float, std::milli> raytracing_duration = stop - start;
+	std::chrono::duration<float, std::milli> smoothing_duration = stop_smoothing - start_smoothing;
 
 	std::cout << "raytracing took: " << raytracing_duration.count() << std::endl;
+	std::cout << "smoothing took: " << smoothing_duration.count() << std::endl;
 
 	cg::utils::save_resource(*render_target, settings->result_path);
 
