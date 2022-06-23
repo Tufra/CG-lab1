@@ -21,5 +21,6 @@ namespace cg::renderer
 		std::shared_ptr<cg::renderer::raytracer<cg::vertex, cg::unsigned_color>> shadow_raytracer;
 
 		std::vector<cg::renderer::light> lights;
+
 	};
 }// namespace cg::renderer
