@@ -110,13 +110,23 @@ void cg::renderer::dx12_renderer::create_swap_chain(ComPtr<IDXGIFactory4>& dxgi_
 
 void cg::renderer::dx12_renderer::create_render_target_views()
 {
-	// TODO Lab 3.04. Create a descriptor heap for render targets
 	rtv_heap.create_heap(
 			device,
 			D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
-			frame_numberk
+			frame_number
 			);
-	// TODO Lab 3.04. Create render target views
+	for (UINT i = 0; i < frame_number; ++i) {
+		THROW_IF_FAILED(swap_chain->GetBuffer(i, IID_PPV_ARGS(&render_targets[i])));
+
+		device->CreateRenderTargetView(
+				render_targets[i].Get(),
+				nullptr,
+				rtv_heap.get_cpu_descriptor_handle(i)
+				);
+		std::wstring name(L"Render target ");
+		name += std::to_wstring(i);
+		render_targets[i]->SetName(name.c_str());
+	}
 }
 
 void cg::renderer::dx12_renderer::create_depth_buffer()
@@ -223,7 +233,7 @@ void cg::renderer::dx12_renderer::create_shader_resource_view(const ComPtr<ID3D1
 
 void cg::renderer::dx12_renderer::create_constant_buffer_view(const ComPtr<ID3D12Resource>& buffer, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handler)
 {
-	// TODO Lab 3.04. Create a constant buffer view
+
 }
 
 void cg::renderer::dx12_renderer::load_assets()
@@ -267,6 +277,13 @@ void cg::renderer::dx12_renderer::load_assets()
 
 	CD3DX12_RANGE read_range(0, 0);
 	THROW_IF_FAILED(constant_buffer->Map(0, &read_range, reinterpret_cast<void**>(&constant_buffer_data_begin)));
+
+	cbv_srv_heap.create_heap(
+			device,
+			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+			1,
+			D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE
+			);
 }
 
 
