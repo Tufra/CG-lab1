@@ -13,8 +13,6 @@ void cg::renderer::dx12_renderer::init()
 {
 	model = std::make_shared<cg::world::model>();
 	model->load_obj(settings->model_path);
-	model->set_scale();
-	model->set_rotation();
 
 	camera = std::make_shared<cg::world::camera>();
 	camera->set_height(static_cast<float>(settings->height));
@@ -53,7 +51,13 @@ void cg::renderer::dx12_renderer::destroy()
 
 void cg::renderer::dx12_renderer::update()
 {
-	// TODO Lab 3.08. Implement `update` method of `dx12_renderer`
+	auto now = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<float> duration = now - current_time;
+	frame_duration = duration.count();
+	current_time = now;
+
+	cb.mwpMatrix = camera->get_dxm_mvp_matrix();
+	memcpy(constant_buffer_data_begin, &cb, sizeof(cb));
 }
 
 void cg::renderer::dx12_renderer::render()
@@ -520,7 +524,7 @@ void cg::renderer::dx12_renderer::load_assets()
 		THROW_IF_FAILED(HRESULT_FROM_WIN32(GetLastError()));
 	}
 
-	// wait_for_gpu();
+//	 wait_for_gpu();
 }
 
 
@@ -537,7 +541,7 @@ void cg::renderer::dx12_renderer::populate_command_list()
 	command_list->SetGraphicsRootSignature(root_signature.Get());
 	ID3D12DescriptorHeap* heaps[] = {cbv_srv_heap.get()};
 	command_list->SetDescriptorHeaps(_countof(heaps), heaps);
-	command_list->SetComputeRootDescriptorTable(0, cbv_srv_heap.get_gpu_descriptor_handle(0));
+	command_list->SetGraphicsRootDescriptorTable(0, cbv_srv_heap.get_gpu_descriptor_handle(0));
 	command_list->RSSetViewports(1, &view_port);
 	command_list->RSSetScissorRects(1, &scissor_rect);
 	command_list->ResourceBarrier(
@@ -601,6 +605,7 @@ void cg::renderer::dx12_renderer::move_to_next_frame()
 				));
 
 		WaitForSingleObjectEx(fence_event, INFINITE, FALSE);
+		fence_values[frame_index]++;
 	}
 	fence_values[frame_index] = current_fence_value + 1;
 }
